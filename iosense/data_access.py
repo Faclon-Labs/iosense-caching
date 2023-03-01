@@ -303,7 +303,7 @@ class DataAccess:
         df.reset_index(drop=True, inplace=True)
         return df
 
-    def get_sensor_alias(self, device_id, df):
+    def get_sensor_alias(self, device_id, df,raw_metadata):
         '''
 
         :param device_id:
@@ -314,8 +314,10 @@ class DataAccess:
         replaces column names with sensor_alias_sensor_id
 
         '''
+
         list1 = list(df['sensor'].unique())
-        raw_metadata = DataAccess.get_device_metadata(self, device_id)
+        if len(raw_metadata) == 0:
+            raw_metadata = DataAccess.get_device_metadata(self, device_id)
         sensor_spec = 'sensors'
         header = ['sensorId', 'sensorName']
         para_value_list = []
@@ -403,7 +405,7 @@ class DataAccess:
             )
         df = sensor_data_with_meta[['time', 'final_value', 'sensorID']]
         df.rename(columns={'time': 'time', 'final_value': 'value', 'sensorID': 'sensor'}, inplace=True)
-        return df
+        return df,raw_metadata
 
     def time_grouping(self, df, bands):
         df['Time'] = pd.to_datetime(df['time'])
@@ -536,11 +538,12 @@ class DataAccess:
                         rawData = json.loads(response.text)['data']
                         qq = pd.DataFrame(rawData)
                         if cal == True or cal == 'true' or cal == "TRUE":
-                            df = DataAccess.get_caliberation(self, device_id, qq)
-                            df = DataAccess.get_sensor_alias(self, device_id, df)
+                            df,metadata = DataAccess.get_caliberation(self, device_id, qq)
+                            df = DataAccess.get_sensor_alias(self, device_id, df,metadata)
                         else:
                             df = qq
-                            df = DataAccess.get_sensor_alias(self, device_id, df)
+                            metadata = {}
+                            df = DataAccess.get_sensor_alias(self, device_id, df,metadata)
                     return df
 
                 else:
@@ -563,15 +566,15 @@ class DataAccess:
                             sub_list = sub_list + filtered
 
                         qq = pd.DataFrame(sub_list)
-                        print('qq', qq)
                         if cal == True or cal == 'true' or cal == "TRUE":
-                            df = DataAccess.get_caliberation(self, device_id, qq)
-                            df = DataAccess.get_sensor_alias(self, device_id, df)
+                            df, metadata = DataAccess.get_caliberation(self, device_id, qq)
+                            df = DataAccess.get_sensor_alias(self, device_id, df,metadata)
                             df = df.sort_values('time')
                             df = df.pivot(index='time', columns='sensor', values='value')
                             df.reset_index(drop=False, inplace=True)
                         else:
-                            df = DataAccess.get_sensor_alias(self, device_id, qq)
+                            metadata = {}
+                            df = DataAccess.get_sensor_alias(self, device_id, qq,metadata)
                             df = df.sort_values('time')
                             df = df.pivot(index='time', columns='sensor', values='value')
                             df.reset_index(drop=False, inplace=True)
@@ -605,11 +608,12 @@ class DataAccess:
                     if cursor['end'] == None:
                         break
                 if cal == True or cal == 'true' or cal == "TRUE":
-                    df = DataAccess.get_caliberation(self, device_id, qq)
-                    df = DataAccess.get_sensor_alias(self, device_id, df)
+                    df,metadata = DataAccess.get_caliberation(self, device_id, qq)
+                    df = DataAccess.get_sensor_alias(self, device_id, df,metadata)
                     df = DataAccess.get_cleaned_table(self, df)
                 else:
-                    df = DataAccess.get_sensor_alias(self, device_id, qq)
+                    metadata = {}
+                    df = DataAccess.get_sensor_alias(self, device_id, qq,metadata)
                     df = DataAccess.get_cleaned_table(self, df)
             return df
         except Exception as e:
@@ -702,12 +706,13 @@ class DataAccess:
 
             if cal == True or cal == 'true' or cal == "TRUE":
                 # #qq=qq[~qq['value'].isin(['','BAD 255','BAD 0','BAD undefined','-'])]
-                df = DataAccess.get_caliberation(self, device_id, df)
-                df = DataAccess.get_sensor_alias(self, device_id, df)
+                df,metadata = DataAccess.get_caliberation(self, device_id, df)
+                df = DataAccess.get_sensor_alias(self, device_id, df,metadata)
                 df = DataAccess.get_cleaned_table(self, df)
             else:
-                df = DataAccess.get_sensor_alias(self, device_id, df)
-                df = DataAccess.get_cleaned_table(self, qq)
+                metadata = {}
+                df = DataAccess.get_sensor_alias(self, device_id, df,metadata)
+                df = DataAccess.get_cleaned_table(self, df)
 
             if bands != None:
                 df = DataAccess.time_grouping(self, df, bands)
