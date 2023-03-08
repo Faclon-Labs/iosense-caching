@@ -1,0 +1,8 @@
+README.md
+setup.py
+iosense/__init__.py
+iosense/data_access.py
+iosense.egg-info/PKG-INFO
+iosense.egg-info/SOURCES.txt
+iosense.egg-info/dependency_links.txt
+iosense.egg-info/top_level.txt
